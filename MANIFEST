@@ -1,7 +1,7 @@
 MANIFEST
 README
 Makefile.PL
-bin/tdiff.pl
+bin/tdiff
 examples/diff.html
 examples/old.txt
 examples/new.txt

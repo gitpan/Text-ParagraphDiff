@@ -2,21 +2,39 @@ package Text::ParagraphDiff;
 
 use strict;
 use warnings 'all';
+
 use Algorithm::Diff qw(diff);
+use Carp qw(croak);
 use HTML::Entities ();
 use POSIX qw(strftime);
-use Data::Dumper;
+
 use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION);
 require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.32";
+$VERSION = "2.40";
 
+
+
+=head2 text_diff( old, new, [options hashref] )
+
+C<text_diff> binds together C<html_header>, C<create_diff>, and C<html_footer>
+to create a single document that is the "paragraph diff" of the 2 records.
+
+=cut
 
 sub text_diff {
     return ((html_header(@_)).(create_diff(@_)).(html_footer(@_)));
 }
+
+
+
+=head2 create_diff ( old, new, [options hashref] )
+
+C<create_diff> creates the actual paragraph diff.
+
+=cut
 
 sub create_diff {
     my($old,$new) = (shift,shift);
@@ -69,7 +87,7 @@ sub create_diff {
     _merge_plus  ($total_diff, $plus) if @$plus;
     _merge_minus ($total_diff, $minus, $opt->{minus_first}) if @$minus;
     _merge_white ($total_diff, \@leading_space);
-    use Data::Dumper;
+
     $total_diff = _merge_lines ($total_diff, \@count);
 
     _fold ($total_diff);
@@ -81,11 +99,12 @@ sub create_diff {
 #########
 # Utility
 
+# turns potential files into recordsets
 sub _get_lines {
     my ($file) = @_;
     my @lines;
     if (!ref $file) {
-        open (FILE, "$file") or die "Can't open file $file: $!";
+        open (FILE, "< $file") or croak "Can't open file $file: $!";
         @lines = <FILE>;
         close(FILE);
         return \@lines;
@@ -111,6 +130,7 @@ sub _fold {
     }
 }
 
+# diffs the files and splits into "plusses and "minuses"
 sub _get_diffs {
     my ($old,$new,$count,$sep) = @_;
     my @diffs = diff($old, $new);
@@ -127,8 +147,9 @@ sub _get_diffs {
     return ($plus,$minus);
 }
 
+# re-adjusts the minus's position to correspond with the positve,
+# and adds paragraph markers where necessary
 sub _fix_minus {
-
     my ($d,$count,$sep) = @_;
     my ($i,$x) = (0,0);
     foreach my $break (@$count) {
@@ -137,7 +158,7 @@ sub _fix_minus {
             ++$x
         }
         last unless @$d > $x;
-        $d->[$x-1][2] .= $sep->[1].$sep->[0] if (($i-1) == $d->[$x-1][1]);
+        $d->[$x-1][2] .= $sep->[1].$sep->[0] if ($i-1) == $d->[$x-1][1];
         ++$x
     }
 }
@@ -145,6 +166,7 @@ sub _fix_minus {
 #########
 # Merging
 
+# integrate the "plus" into the main document
 sub _merge_plus {
     my ($total_diff, $plus_diff) = @_;
 
@@ -153,7 +175,8 @@ sub _merge_plus {
     }
 }
 
-
+# integrate the minus into the main document, making sure not
+# to split up any plusses
 sub _merge_minus {
     my ($total_diff, $min_diff, $minus_first) = @_;
     my ($pos,$offset) = (0,0);
@@ -178,15 +201,15 @@ sub _merge_minus {
     push @$total_diff, map { ['-',$_->[2]] } @$min_diff if @$min_diff;
 }
 
+# merge in whitespace.
 sub _merge_white {
     my ($total_diff, $whitespace) = @_;
     my $pos = 0;
 
     while ( @$whitespace ) {
         my $cur = shift @$whitespace;
-        while (
-                    ($pos < @$total_diff)
-                 && ($total_diff->[$pos][0] ne '-')
+        while (    ($pos < @$total_diff)
+                && ($total_diff->[$pos][0] ne '-')
               ) { $pos++ }
         $total_diff->[$pos][1] = $cur . $total_diff->[$pos][1]
             if $total_diff->[$pos][1];
@@ -199,20 +222,24 @@ sub _merge_lines {
     my $new = [];
 
     foreach my $cur ( @$count ) {
+
         if ($cur > 0) {
-	        no warnings;
+            no warnings;
             push @$new, [];
             my ($pos,$neg,$x) = (0)x3;
-            while (    ($pos < $cur)
-                  ) {
-                ++$pos if $total_diff->[$x][0] ne ' ';
+            while ( ($pos < $cur)
+            #|| ($total_diff->[$x][0] eq '-')
+            ) {
+                ++$pos if $total_diff->[$x][0] ne '-';
                 ++$neg if $total_diff->[$x][0] eq '-';
                 ++$x;
             }
             $new->[-1] = [splice @$total_diff,0,$pos+$neg];
         }
     }
-
+    if (@$total_diff) {
+        push @{$new->[-1]}, @$total_diff if @{$total_diff->[0]};
+    }
     return $new;
 }
 
@@ -401,8 +428,8 @@ rather than by line, reflows the text together, and then outputs result as xhtml
     print text_diff(\@old,\@new);          # Or pass array references
     print text_diff($old,$new,{plain=>1}); # Pass options (see below)
 
-    # or use the premade script:
-    # ./tdiff.pl oldfile newfile
+    # or use the premade script in bin/:
+    # ./tdiff oldfile newfile
 
 =head1 DESCRIPTION
 
@@ -431,11 +458,12 @@ ozilla 1.0 and IE 5.x)
 Options are stored in a hashref, C<$opt>.  C<$opt> is an optional last argument
 to C<text_diff>, passed like this:
 
-    text_diff($old, $new, {plain => 1,
-                           escape => 1,
-                           functionality => 1,
-                           style => 'stylesheet_code_here',
-                           header => 'header_markup_here'});
+    text_diff($old, $new, { plain => 1,
+                            escape => 1,
+                            functionality => 1,
+                            style => 'stylesheet_code_here',
+                            header => 'header_markup_here'
+                          });
 
 Options are:
 
@@ -506,8 +534,7 @@ complicated.
 =head1 AUTHOR
 
 Joseph F. Ryan (ryan.311@osu.edu)
-
-Thanks to Jonas Liljegren for suggestions on an improved test script.
+Tests done by Jonas Liljegren  (jonas@liljegren.org)
 
 =head1 SEE ALSO
 
