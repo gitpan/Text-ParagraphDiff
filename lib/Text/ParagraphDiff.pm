@@ -11,7 +11,7 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.01";
+$VERSION = "2.10";
 
 
 sub text_diff {
@@ -61,17 +61,18 @@ sub create_diff {
         push @count, scalar(@words);
     }
 
-    my ($plus,$minus) = _get_diffs(\@old, \@new, \@old_count);
+    $opt->{sep} = ['<p>','</p>'] unless exists $opt->{sep};
+    my ($plus,$minus) = _get_diffs(\@old, \@new, \@old_count, $opt->{sep});
 
-    _merge_plus  ($total_diff, $plus );
-    _merge_minus ($total_diff, $minus );
+    _merge_plus  ($total_diff, $plus ) if @$plus;
+    _merge_minus ($total_diff, $minus ) if @$minus;
     _merge_white ($total_diff, \@leading_space);
 
     $total_diff = _merge_lines ($total_diff, \@count);
 
     _fold ($total_diff);
 
-    my $output = _format ($total_diff,\%highlight);
+    my $output = _format ($total_diff, \%highlight, $opt->{sep});
     return $output;
 }
 
@@ -109,7 +110,8 @@ sub _fold {
 }
 
 sub _get_diffs {
-    my @diffs = diff($_[0], $_[1]);
+    my ($old,$new,$count,$sep) = @_;
+    my @diffs = diff($old, $new);
     my ($plus,$minus);
     foreach my $hunk (@diffs) {
         foreach (@$hunk) {
@@ -118,20 +120,23 @@ sub _get_diffs {
         }
     }
 
-    _fix_minus ($minus, $_[2]);
+    _fix_minus ($minus, $count, $sep);
 
     return ($plus,$minus);
 }
 
 sub _fix_minus {
 
+    my ($d,$count,$sep) = @_;
     my ($i,$x) = (0,0);
-    foreach my $break (@{$_[1]}) {
+    foreach my $break (@$count) {
         $i += $break;
-        while (($x< @{$_[0]}) && ($i > $_[0]->[$x][1])) { $x++ }
-        last unless @{$_[0]} > $x;
-        $_[0]->[$x-1][2] .= " </p><p>" if (($i-1) == $_[0]->[$x-1][1]);
-        $x++;
+        while ( ($x < @$d) && ($i > $d->[$x][1]) ) {
+            ++$x
+        }
+        last unless @$d > $x;
+        $d->[$x-1][2] .= $sep->[1].$sep->[0] if (($i-1) == $d->[$x-1][1]);
+        ++$x
     }
 }
 
@@ -176,7 +181,7 @@ sub _merge_white {
               ) { $pos++ }
         $total_diff->[$pos][1] = $cur . $total_diff->[$pos][1]
         	if $total_diff->[$pos][1];
-        $pos++;
+        ++$pos;
     }
 }
 
@@ -190,16 +195,15 @@ sub _merge_lines {
             push @$new, [];
             my ($pos,$neg,$x) = (0)x3;
             while ( $pos < $cur ) {
-                $pos++ if $total_diff->[$x][0] ne '-';
-                $neg++ if $total_diff->[$x][0] eq '-';
-                $x++;
+                ++$pos if $total_diff->[$x][0] ne '-';
+                ++$neg if $total_diff->[$x][0] eq '-';
+                ++$x;
             }
             $new->[-1] = [splice @$total_diff,0,$pos+$neg];
         }
     }
     return $new;
 }
-
 
 sub _merge_old_lines {
     my ($total_diff, $count) = @_;
@@ -210,9 +214,9 @@ sub _merge_old_lines {
             push @$new, [];
             my ($pos,$neg,$x) = (0)x3;
             while ( $pos < $cur ) {
-                $pos++ if $total_diff->[$x][0] ne '-';
-                $neg++ if $total_diff->[$x][0] eq '-';
-                $x++;
+                ++$pos if $total_diff->[$x][0] ne '-';
+                ++$neg if $total_diff->[$x][0] eq '-';
+                ++$x
             }
             $new->[-1] = [splice (@$total_diff,0,$pos+$neg)];
         }
@@ -224,11 +228,11 @@ sub _merge_old_lines {
 # Output
 
 sub _format {
-    my ($diff,$highlight) = @_;
+    my ($diff,$highlight,$sep) = @_;
     my $output;
     foreach my $hunk (@$diff) {
 
-        $output .= "\n<p>\n";
+        $output .= "\n$sep->[0]\n";
         foreach my $sect (@$hunk) {
             if ($sect->[0] eq ' ') {
                 $output .= "$sect->[1] ";
@@ -240,7 +244,7 @@ sub _format {
                 $output .= " $highlight->{minus}$sect->[1]$highlight->{end} ";
             }
         }
-        $output .= "\n</p>\n";
+        $output .= "\n$sep->[1]\n";
     }
     return $output;
 }
@@ -262,7 +266,7 @@ sub html_header {
         return "<html><head><title>Difference of $old, $new</title></head><body>"
     }
 
-    my $header = $opt->{header} || qq(
+    my $header = (exists $opt->{header}) ? $opt->{header} : qq(
         <div>
         <font size="+2"><b>Difference of:</b></font>
         <table border="0" cellspacing="5">
@@ -328,7 +332,7 @@ sub html_header {
         </script>
     );
 
-    my $style = $opt->{style} || qq(
+    my $style = (exists $opt->{style}) ? $opt->{style} : qq(
         <style>
             .plus{background-color:#00BBBB; visibility="visible"}
             .minus{background-color:#FF9999; visibility="visible"}
@@ -355,7 +359,7 @@ sub html_header {
         <form>
         <table border="0" cellspacing="5">
         <td><input type="button" class="togglep" value="Toggle Plus" onclick="toggle_plus(); return false;" /></td><td width="10">&nbsp;</td>
-        <td><input type="button" class="togglem" value="Toggle inus" onclick="toggle_minus(); return false;" /></td><td width="10">&nbsp;</td>
+        <td><input type="button" class="togglem" value="Toggle Minus" onclick="toggle_minus(); return false;" /></td><td width="10">&nbsp;</td>
         </table>
         </form>
         </div>
@@ -376,7 +380,10 @@ sub html_header {
     );
 }
 
-sub html_footer { return "</div></body></html>" }
+sub html_footer {
+    return (exists $_[0]->{footer}) ? $_[0]->{footer} :
+        "</div></body></html>"
+}
 
 1;
 
@@ -470,6 +477,13 @@ Please see C<output_html_header> above for more details.
 
 When C<escape> is set, then output will not be escaped.  Useful if you want to
 include your own markup.
+
+=item B<sep>
+
+When C<sep> is set, its value will override the default paragraph
+separator.  C<sep> should be a reference to an array of 2 elements;
+the starting paragraph separator, and the ending separator.  The default
+value is C<['<p>',</p>']>.
 
 =back
 

@@ -1,4 +1,4 @@
-Text/ParagraphDiff version 2.01
+Text/ParagraphDiff version 2.10
 ======================
 
 INSTALLATION
@@ -19,5 +19,5 @@ This module requires these other modules and libraries:
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2002 Joseph F. Ryan, ryan.311@osu.edu
+Copyright (C) 2002 Joseph F. Ryan <ryan.311@osu.edu>
 Available for use under the same terms as Perl itself.
