@@ -13,7 +13,7 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.51";
+$VERSION = "2.60";
 
 
 
@@ -36,6 +36,7 @@ sub text_diff {
 # C<create_diff> creates the actual paragraph diff.
 
 sub create_diff {
+
     my($old,$new) = (shift,shift);
     my $opt=shift if (@_);
 
@@ -67,6 +68,7 @@ sub create_diff {
 
     }
 
+
     my ($total_diff, @new, @leading_space, @count);
     foreach (@$new_orig)
     {
@@ -88,7 +90,7 @@ sub create_diff {
     _merge_minus ($total_diff, $minus, $opt->{minus_first}) if @$minus;
     _merge_white ($total_diff, \@leading_space);
 
-    $total_diff = _merge_lines ($total_diff, \@count);
+    $total_diff = _merge_lines ($total_diff, \@old_count, \@count);
 
     _fold ($total_diff);
 
@@ -146,9 +148,7 @@ sub _get_diffs {
             push @$minus, $_ if $_->[0] eq '-';
         }
     }
-
     _fix_minus ($minus, $count, $sep);
-
     return ($plus,$minus);
 }
 
@@ -223,30 +223,34 @@ sub _merge_white {
 }
 
 sub _merge_lines {
-    my ($total_diff, $count) = @_;
+    my ($total_diff, $old_count, $new_count) = @_;
     my $new = [];
+    my @old_count_orig = @$old_count;
 
-    foreach my $cur ( @$count ) {
-
-        if ($cur > 0) {
-            no warnings;
+    foreach my $words_in_line ( @$new_count ) {
+        if ($words_in_line > 0) {
             push @$new, [];
-            my ($pos,$neg,$x) = (0)x3;
-            while ( ($pos < $cur)
-            #|| ($total_diff->[$x][0] eq '-')
-            ) {
-                ++$pos if $total_diff->[$x][0] ne '-';
-                ++$neg if $total_diff->[$x][0] eq '-';
-                ++$x;
+            my ($pos,$total) = (0,0);
+            while ($pos < $words_in_line ) {
+                until ($old_count->[0]) {
+                    last unless @$old_count;
+                    shift @$old_count;
+                    shift @old_count_orig;
+                }
+                ++$pos if $total_diff->[$total][0] ne '-';
+                $old_count->[0] = $old_count->[0] - 1 if $total_diff->[$total][0] ne '+';
+                ++$total;
             }
-            $new->[-1] = [splice @$total_diff,0,$pos+$neg];
+            $new->[-1] = [splice @$total_diff,0,$total];
         }
     }
 
-    # if (ref $total_diff && @$total_diff) {
-    if (ref $total_diff->[0] && @{$total_diff->[0]}) {
-        push @$new, [] unless @$new;
-        push @{$new->[-1]}, @$total_diff if @{$total_diff->[0]};
+    if (@$old_count && $old_count->[0] < $old_count_orig[0]) {
+        push @{$new->[-1]}, splice(@$total_diff, 0, $old_count->[0]);
+        shift @old_count_orig;
+    }
+    while (@old_count_orig) {
+        push @$new, [splice @$total_diff, 0, shift(@old_count_orig)]
     }
 
     return $new;
@@ -258,8 +262,8 @@ sub _merge_lines {
 sub _format {
     my ($diff,$highlight,$sep) = @_;
     my $output;
-    foreach my $hunk (@$diff) {
 
+    foreach my $hunk (@$diff) {
         $output .= "\n$sep->[0]\n";
         foreach my $sect (@$hunk) {
             if ($sect->[0] eq ' ') {
@@ -269,6 +273,7 @@ sub _format {
                 $output .= " $highlight->{plus}$sect->[1]$highlight->{end} ";
             }
             else {
+                # $sect->[1] = '' unless $sect->[1];
                 $output .= " $highlight->{minus}$sect->[1]$highlight->{end} ";
             }
         }
