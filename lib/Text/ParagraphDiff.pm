@@ -11,7 +11,7 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.20";
+$VERSION = "2.32";
 
 
 sub text_diff {
@@ -69,7 +69,7 @@ sub create_diff {
     _merge_plus  ($total_diff, $plus) if @$plus;
     _merge_minus ($total_diff, $minus, $opt->{minus_first}) if @$minus;
     _merge_white ($total_diff, \@leading_space);
-
+    use Data::Dumper;
     $total_diff = _merge_lines ($total_diff, \@count);
 
     _fold ($total_diff);
@@ -163,6 +163,10 @@ sub _merge_minus {
             ++$offset if $total_diff->[$pos][0] eq '+';
             ++$pos;
         }
+        if ($pos >= $#{$total_diff}) {
+            push @$total_diff, ['-',$cur->[2]];
+            last;
+        }
         while ($total_diff->[$pos][0] eq '+') {
             ++$offset;
             ++$pos;
@@ -171,6 +175,7 @@ sub _merge_minus {
         $current = $offset if $minus_first;
         splice @$total_diff, $pos-$current, 0, ['-',$cur->[2]];
     }
+    push @$total_diff, map { ['-',$_->[2]] } @$min_diff if @$min_diff;
 }
 
 sub _merge_white {
@@ -194,37 +199,20 @@ sub _merge_lines {
     my $new = [];
 
     foreach my $cur ( @$count ) {
-
         if ($cur > 0) {
+	        no warnings;
             push @$new, [];
             my ($pos,$neg,$x) = (0)x3;
-            while ( $pos < $cur ) {
-                ++$pos if $total_diff->[$x][0] ne '-';
+            while (    ($pos < $cur)
+                  ) {
+                ++$pos if $total_diff->[$x][0] ne ' ';
                 ++$neg if $total_diff->[$x][0] eq '-';
                 ++$x;
             }
             $new->[-1] = [splice @$total_diff,0,$pos+$neg];
         }
     }
-    return $new;
-}
 
-sub _merge_old_lines {
-    my ($total_diff, $count) = @_;
-    my $new = [];
-
-    foreach my $cur ( @$count ) {
-        if ($cur > 0) {
-            push @$new, [];
-            my ($pos,$neg,$x) = (0)x3;
-            while ( $pos < $cur ) {
-                ++$pos if $total_diff->[$x][0] ne '-';
-                ++$neg if $total_diff->[$x][0] eq '-';
-                ++$x
-            }
-            $new->[-1] = [splice (@$total_diff,0,$pos+$neg)];
-        }
-    }
     return $new;
 }
 
@@ -518,6 +506,8 @@ complicated.
 =head1 AUTHOR
 
 Joseph F. Ryan (ryan.311@osu.edu)
+
+Thanks to Jonas Liljegren for suggestions on an improved test script.
 
 =head1 SEE ALSO
 

@@ -1,183 +1,49 @@
 use Test;
-BEGIN { plan tests => 3 };
+BEGIN { plan tests => 12 };
 use Text::ParagraphDiff;
 ok(1);
-my $old = <<"END_OLD";
-What is Perl?
 
-Perl is a high-level tool with an eclectic heritage written by Larry Wall and a cast of thousands. It derives from the ubiquitous C programming language and to a lesser extent from sed, awk, the Unix shell, and at least a dozen other tools and languages. Perl's process, file, and text manipulation facilities make it particularly well-suited for tasks involving quick writing, system utilities, software tools, system management tasks, database access, graphical programming, networking, and world wide web programming. These strengths make it especially popular with system admins and CGI script authors, but mathematicians, geneticists, journalists, and even managers also use Perl. Maybe you should, too.
 
-Who supports Perl? Who develops it? Why is it free?
+Text::ParagraphDiff::create_diff( ["First middle last"],
+                                  ["First middle last"]
+) eq qq(\n<p>\nFirst middle last \n</p>\n) ? ok(1) : ok(0);
 
-This text is taken from perlfaq 1 for demonstration purposes.  Toggle "minus" off to view the actual exerpt from the Perlfaq.
+Text::ParagraphDiff::create_diff( ["First middle last"],
+                                  ["First middle last extra"]
+) eq qq(\n<p>\nFirst middle last  <span class="plus"> extra</span> \n</p>\n) ? ok(1) : ok(0);
 
-The original culture of the pre-populist Internet and the deeply-held beliefs of Perl's author, Larry Wall, gave rise to the free and open distribution policy of perl. Perl is supported by its users. The core, the standard Perl library, the optional modules, and the documentation you're reading now were all written by volunteers. See the personal note at the end of the READIT file in the perl source distribution for more details. See perlhist (new as of 5.005) for Perl's milestone releases.
+Text::ParagraphDiff::create_diff( ["First middle last extra"],
+                                  ["First middle last"]
+) eq qq(\n<p>\nFirst middle last  <span class="minus"> extra</span> \n</p>\n) ? ok(1) : ok(0);
 
-In particular, the core development team (known as the Perl Porters) are a rag-tag band of highly altruistic individuals committed to producing better software for free than you could hope to purchase for money. You may snoop on pending developments via the archives at http://www.xray.mpe.mpg.de/mailing-lists/perl5-porters/ and http://archive.develooper.com/perl5-porters@perl.org/ or the news gateway nntp://nntp.perl.org/perl.perl5.porters or its web interface at http://nntp.perl.org/group/perl.perl5.porters , or read the faq at http://perlhacker.org/p5p-faq , or you can subscribe to the list by sending perl5-porters-request@perl.org a subscription request (an empty message with no subject is fine).
+Text::ParagraphDiff::create_diff( ["First middle last"],
+                                  ["Extra First middle last"]
+) eq qq(\n<p>\n <span class="plus"> Extra</span> First middle last \n</p>\n) ? ok(1) : ok(0);
 
-You can get commercial support of Perl if you wish, although for most users the informal support will more than suffice. See the answer to "Where can I buy a version of perl?" for more information.
-END_OLD
+Text::ParagraphDiff::create_diff( ["Extra First middle last"],
+                                  ["First middle last"]
+) eq qq(\n<p>\n <span class="minus"> Extra</span> First middle last \n</p>\n) ? ok(1) : ok(0);
 
-my $new = <<"END_NEW";
-What is Perl?
+Text::ParagraphDiff::create_diff( ["First middle last"],
+                                  ["First middle other"]
+) eq qq(\n<p>\nFirst middle  <span class="plus"> other</span>  <span class="minus"> last</span> \n</p>\n) ? ok(1) : ok(0);
 
-Perl is a high-level programming language with an eclectic heritage written by Larry Wall and a cast of thousands. It derives from the ubiquitous C programming language and to a lesser extent from sed, awk, the Unix shell, and at least a dozen other tools and languages. Perl's process, file, and text manipulation facilities make it particularly well-suited for tasks involving quick prototyping, system utilities, software tools, system management tasks, database access, graphical programming, networking, and world wide web programming. These strengths make it especially popular with system administrators and CGI script authors, but mathematicians, geneticists, journalists, and even managers also use Perl. Maybe you should, too.
+Text::ParagraphDiff::create_diff( ["First middle last"],
+                                  ["First other last"]
+) eq qq(\n<p>\nFirst  <span class="plus"> other</span>  <span class="minus"> middle</span> last \n</p>\n) ? ok(1) : ok(0);
 
-Who supports Perl? Who develops it? Why is it free?
+Text::ParagraphDiff::create_diff( ["First middle last"],
+                                  ["Other middle last"]
+) eq qq(\n<p>\n <span class="plus"> Other</span>  <span class="minus"> First</span> middle last \n</p>\n) ? ok(1) : ok(0);
 
-The original culture of the pre-populist Internet and the deeply-held beliefs of Perl's author, Larry Wall, gave rise to the free and open distribution policy of perl. Perl is supported by its users. The core, the standard Perl library, the optional modules, and the documentation you're reading now were all written by volunteers. See the personal note at the end of the README file in the perl source distribution for more details. See perlhist (new as of 5.005) for Perl's milestone releases.
+Text::ParagraphDiff::create_diff( ["First middle other"],
+                                  ["First middle last"]
+) eq qq(\n<p>\nFirst middle  <span class="plus"> last</span>  <span class="minus"> other</span> \n</p>\n) ? ok(1) : ok(0);
 
-In particular, the core development team (known as the Perl Porters) are a rag-tag band of highly altruistic individuals committed to producing better software for free than you could hope to purchase for money. You may snoop on pending developments via the archives at http://www.xray.mpe.mpg.de/mailing-lists/perl5-porters/ and http://archive.develooper.com/perl5-porters@perl.org/ or the news gateway nntp://nntp.perl.org/perl.perl5.porters or its web interface at http://nntp.perl.org/group/perl.perl5.porters , or the faq at http://perlhacker.org/p5p-faq , or you can subscribe to the mailing list by sending perl5-porters-request@perl.org a subscription request (an empty message with no subject is fine).
+Text::ParagraphDiff::create_diff( ["First other last"],
+                                  ["First middle last"]
+) eq qq(\n<p>\nFirst  <span class="plus"> middle</span>  <span class="minus"> other</span> last \n</p>\n) ? ok(1) : ok(0);
 
-While the GNU project includes Perl in its distributions, there's no such thing as "GNU Perl". Perl is not produced nor maintained by the Free Software Foundation. Perl's licensing terms are also more open than GNU software's tend to be.
-
-You can get commercial of Perl if you wish, although for most users the informal support will more than suffice. See the answer to "Where can I buy a commercial version of perl?" for more information.
-END_NEW
-
-chomp $old;
-chomp $new;
-my @old = split /\n/, $old;
-my @new = split /\n/, $new;
-my $newdiff = text_diff(\@old,\@new
-#,{plain=>1}
-);
-ok(1);
-
-my $olddiff = <<"ENDOLDDIFF";
-
-        <!DOCTYPE html
-            PUBLIC "-//W3C//DTD XHMTL 1.0 Transitional//EN"
-            "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-        <html><head>
-        <title>Difference of old, new</title>
-        
-        <script>
-        toggle_plus_status = 1;
-        toggle_minus_status = 1;
-        function dis_plus() {
-            for(i=0; (a = document.getElementsByTagName("span")[i]); i++) {
-                if(a.className == "plus") {
-                    a.style.display="none";
-                }
-            }
-        }
-        function dis_minus() {
-            for(i=0; (a = document.getElementsByTagName("span")[i]); i++) {
-                if(a.className == "minus") {
-                    a.style.display="none";
-                }
-            }
-        }
-        function view_plus() {
-            for(i=0; (a = document.getElementsByTagName("span")[i]); i++) {
-                if(a.className == "plus") {
-                    a.style.display="inline";
-                }
-            }
-        }
-        function view_minus() {
-            for(i=0; (a = document.getElementsByTagName("span")[i]); i++) {
-                if(a.className == "minus") {
-                    a.style.display="inline";
-                }
-            }
-        }
-
-        function toggle_plus() {
-            if (toggle_plus_status == 1) {
-                dis_plus();
-                toggle_plus_status = 0;
-            }
-            else {
-                view_plus();
-                toggle_plus_status = 1;
-            }
-        }
-
-        function toggle_minus() {
-            if (toggle_minus_status == 1) {
-                dis_minus();
-                toggle_minus_status = 0;
-            }
-            else {
-                view_minus();
-                toggle_minus_status = 1;
-            }
-        }
-        </script>
-    
-        
-        <style>
-            .plus{background-color:#00BBBB; visibility="visible"}
-            .minus{background-color:#FF9999; visibility="visible"}
-            DIV{ margin:50px; border:solid; background-color:#F2F2F2; padding:5px; }
-            BODY{line-height:1.7; background-color:#888888}
-            B{font-size:bigger;}
-            .togglep {
-                font-size : 12px;
-                font-family : geneva, arial, sans-serif;
-                color : #ffc;
-                background-color : #00BBBB;
-            }
-            .togglem {
-                font-size : 12px;
-                font-family : geneva, arial, sans-serif;
-                color : #ffc;
-                background-color : #ff9999;
-            }
-        </style>
-    
-        </head><body>
-        
-        <div>
-        <font size="+2"><b>Difference of:</b></font>
-        <table border="0" cellspacing="5">
-        <tr><td class="minus">---</td><td class="minus"><b>old</b></td><td>Sunday, March 06, 2003 @ 22:35</td></tr>
-        <tr><td class="plus" >+++</td><td class="plus" ><b>new</b></td><td>Sunday, March 06, 2003 @ 22:35</td></tr>
-        </table></div>
-    
-        
-        <div>
-        <form>
-        <table border="0" cellspacing="5">
-        <td><input type="button" class="togglep" value="Toggle Plus" onclick="toggle_plus(); return false;" /></td><td width="10">&nbsp;</td>
-        <td><input type="button" class="togglem" value="Toggle Minus" onclick="toggle_minus(); return false;" /></td><td width="10">&nbsp;</td>
-        </table>
-        </form>
-        </div>
-    
-        <div>
-    
-<p>
-What is Perl? 
-</p>
-
-<p>
-Perl is a high-level  <span class="plus"> programming language</span>  <span class="minus"> tool</span> with an eclectic heritage written by Larry Wall and a cast of thousands. It derives from the ubiquitous C programming language and to a lesser extent from sed, awk, the Unix shell, and at least a dozen other tools and languages. Perl's process, file, and text manipulation facilities make it particularly well-suited for tasks involving quick  <span class="plus"> prototyping,</span>  <span class="minus"> writing,</span> system utilities, software tools, system management tasks, database access, graphical programming, networking, and world wide web programming. These strengths make it especially popular with system  <span class="plus"> administrators</span>  <span class="minus"> admins</span> and CGI script authors, but mathematicians, geneticists, journalists, and even managers also use Perl. Maybe you should, too. 
-</p>
-
-<p>
-Who supports Perl? Who develops it? Why is it free? 
-</p>
-
-<p>
- <span class="minus"> This text is taken from perlfaq 1 for demonstration purposes. Toggle &quot;minus&quot; off to view the actual exerpt from the Perlfaq.</p><p></span> The original culture of the pre-populist Internet and the deeply-held beliefs of Perl's author, Larry Wall, gave rise to the free and open distribution policy of perl. Perl is supported by its users. The core, the standard Perl library, the optional modules, and the documentation you're reading now were all written by volunteers. See the personal note at the end of the  <span class="plus"> README</span>  <span class="minus"> READIT</span> file in the perl source distribution for more details. See perlhist (new as of 5.005) for Perl's milestone releases. 
-</p>
-
-<p>
-In particular, the core development team (known as the Perl Porters) are a rag-tag band of highly altruistic individuals committed to producing better software for free than you could hope to purchase for money. You may snoop on pending developments via the archives at http://www.xray.mpe.mpg.de/mailing-lists/perl5-porters/ and http://archive.develooper.com/perl5-porters.org/ or the news gateway nntp://nntp.perl.org/perl.perl5.porters or its web interface at http://nntp.perl.org/group/perl.perl5.porters , or  <span class="minus"> read</span> the faq at http://perlhacker.org/p5p-faq , or you can subscribe to the  <span class="plus"> mailing</span> list by sending perl5-porters-request.org a subscription request (an empty message with no subject is fine). 
-</p>
-
-<p>
- <span class="plus"> While the GNU project includes Perl in its distributions, there's no such thing as &quot;GNU Perl&quot;. Perl is not produced nor maintained by the Free Software Foundation. Perl's licensing terms are also more open than GNU software's tend to be.</span> 
-</p>
-
-<p>
-You can get commercial  <span class="minus"> support</span> of Perl if you wish, although for most users the informal support will more than suffice. See the answer to &quot;Where can I buy a  <span class="plus"> commercial</span> version of perl?&quot; for more information. 
-</p>
-</div></body></html>
-ENDOLDDIFF
-
-chomp $olddiff;
-ok(1) if substr($newdiff,-3610) eq substr($olddiff,-3610);
-ok(0) if substr($newdiff,-3610) ne substr($olddiff,-3610);
+Text::ParagraphDiff::create_diff( ["Other middle last"],
+                                  ["First middle last"]
+) eq qq(\n<p>\n <span class="plus"> First</span>  <span class="minus"> Other</span> middle last \n</p>\n) ? ok(1) : ok(0);
