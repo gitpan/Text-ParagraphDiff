@@ -13,7 +13,7 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.50";
+$VERSION = "2.51";
 
 
 
@@ -39,8 +39,8 @@ sub create_diff {
     my($old,$new) = (shift,shift);
     my $opt=shift if (@_);
 
-    my $old_orig = _get_lines($old);
-    my $new_orig = _get_lines($new);
+    my $old_orig = _get_lines($old, $opt);
+    my $new_orig = _get_lines($new, $opt);
     $new_orig = [''] unless @$new_orig;
 
     my %highlight;
@@ -243,10 +243,12 @@ sub _merge_lines {
         }
     }
 
-    if (@{$total_diff->[0]}) {
+    # if (ref $total_diff && @$total_diff) {
+    if (ref $total_diff->[0] && @{$total_diff->[0]}) {
         push @$new, [] unless @$new;
-        push @{$new->[-1]}, @$total_diff;
+        push @{$new->[-1]}, @$total_diff if @{$total_diff->[0]};
     }
+
     return $new;
 }
 
@@ -407,11 +409,13 @@ sub html_header {
 }
 
 sub html_footer {
-    if ((@_ == 3) && (exists $_[2]->{footer})) {
-        return $_[2]->{footer}
+    my $div = "";
+
+    if (@_ == 3) {
+        return $_[2]->{footer} if exists $_[2]->{footer};
+        $div = "</div>" unless $_[2]->{plain}
     }
 
-    my $div = $_[2]->{plain} ? "" : "</div>";
     return $div."</body></html>"
 }
 
@@ -489,12 +493,14 @@ of different options.
 Options are stored in a hashref, C<$opt>.  C<$opt> is an optional last argument
 to C<text_diff>, passed like this:
 
-    text_diff($old, $new, { string => 1,
-                            plain => 1,
+    text_diff($old, $new, { plain => 1,
                             escape => 1,
+                            string => 1,
+                            minus_first => 1,
                             functionality => 1,
                             style => 'stylesheet_code_here',
-                            header => 'header_markup_here'
+                            header => 'header_markup_here',
+                            sep => ['<p>','</p>']
                           });
 
 All options are, uh, optional.
@@ -503,17 +509,28 @@ Options are:
 
 =over 3
 
+=item B<plain>
+
+When set to a true value, C<plain> will cause a document to be rendered
+plainly, with very sparse html that should be valid even through Netscape
+Navigator 2.0.
+
 =item B<string>
 
 When set to a true value, C<string> will cause the first 2 arguments to
 be treated as strings, and not files.  These strings will be split on
 the newline character.
 
-=item B<plain>
+=item B<escape>
 
-When set to a true value, C<plain> will cause a document to be rendered
-plainly, with very sparse html that should be valid even through Netscape
-Navigator 2.0.
+When C<escape> is set, then input will not be escaped.  Useful if you want to
+include your own markup.
+
+=item B<minus_first>
+
+By default, when there is a +/- pair, + items appear first by default.
+However, if C<minus_first> is set to a true value, then the order will
+be reversed.
 
 =item B<functionality>
 
@@ -530,28 +547,12 @@ see C<output_html_header> above for the default stylesheet specifications.
 When C<header> is set, its value will override the default difference header.
 Please see C<output_html_header> above for more details.
 
-=item B<header>
-
-When C<header> is set, its value will override the default difference header.
-Please see C<output_html_header> above for more details.
-
-=item B<escape>
-
-When C<escape> is set, then output will not be escaped.  Useful if you want to
-include your own markup.
-
 =item B<sep>
 
 When C<sep> is set, its value will override the default paragraph
 separator.  C<sep> should be a reference to an array of 2 elements;
 the starting paragraph separator, and the ending separator.  The default
 value is C<['<p>',</p>']>.
-
-=item B<minus_first>
-
-By default, when there is a +/- pair, + items appear first by default.
-However, if C<minus_first> is set to a true value, then the order will
-be reversed.
 
 =back
 
