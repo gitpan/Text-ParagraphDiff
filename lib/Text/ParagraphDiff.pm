@@ -13,7 +13,7 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.60";
+$VERSION = "2.70";
 
 
 
@@ -195,7 +195,7 @@ sub _merge_minus {
             push @$total_diff, ['-',$cur->[2]];
             last;
         }
-        while ($total_diff->[$pos][0] eq '+') {
+        while ($pos < @$total_diff && $total_diff->[$pos][0] eq '+') {
             ++$offset;
             ++$pos;
         }
@@ -203,6 +203,7 @@ sub _merge_minus {
         $current = $offset if $minus_first;
         splice @$total_diff, $pos-$current, 0, ['-',$cur->[2]];
     }
+
     push @$total_diff, map { ['-',$_->[2]] } @$min_diff if @$min_diff;
 }
 

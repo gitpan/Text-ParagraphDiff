@@ -1,5 +1,5 @@
 use Test;
-BEGIN { plan tests => 20 };
+BEGIN { plan tests => 21 };
 
 #1
 use Text::ParagraphDiff;
@@ -101,3 +101,8 @@ Text::ParagraphDiff::create_diff( ["First middle last", "First middle last"],
 Text::ParagraphDiff::create_diff( ["First middle last","a b c"],
                         ["one two three","First middle last"]
 ) eq qq(\n<p>\n <span class="plus"> one two three</span> \n</p>\n\n<p>\nFirst middle last \n</p>\n\n<p>\n <span class="minus"> a b c</span> \n</p>\n) ? ok(1) : ok(0);
+
+#21
+Text::ParagraphDiff::create_diff( ["test 1 2"],
+                                  ["test 3 4"]
+) eq qq(\n<p>\ntest  <span class="plus"> 3 4</span>  <span class="minus"> 1 2</span> \n</p>\n) ? ok(1) : ok(0);
