@@ -3,8 +3,9 @@ MANIFEST
 README
 test.pl
 bin/tdiff.pl
-lib/Text/ParagraphDiff/ParagraphDiff.pm
+lib/Text/ParagraphDiff.pm
 examples/diff.html
 t/diff.t
+t/diff.txt
 t/old.txt
 t/new.txt
