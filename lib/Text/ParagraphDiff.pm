@@ -13,7 +13,7 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.40";
+$VERSION = "2.41";
 
 
 
@@ -271,10 +271,10 @@ sub _format {
 sub html_header {
     my ($old,$new,$opt) = @_;
 
-    my $old_time = strftime( "%A, %B %d, %Y @ %H:%:%S",
+    my $old_time = strftime( "%A, %B %d, %Y @ %H:%M:%S",
                             (ref $old) ? time : (stat $old)[9]
                             , 0, 0, 0, 0, 70, 0 );
-    my $new_time = strftime( "%A, %B %d, %Y @ %H:%:%S",
+    my $new_time = strftime( "%A, %B %d, %Y @ %H:%M:%S",
                             (ref $new) ? time : (stat $new)[9]
                             , 0, 0, 0, 0, 70, 0 );
 
@@ -426,6 +426,7 @@ rather than by line, reflows the text together, and then outputs result as xhtml
     use Text::ParagraphDiff;
     print text_diff('old.txt','new.txt');  # old.txt and new.txt are filenames
     print text_diff(\@old,\@new);          # Or pass array references
+    print text_diff(["old"], ["new"]);     # T-Diff 2 plain strings (a FAQ)
     print text_diff($old,$new,{plain=>1}); # Pass options (see below)
 
     # or use the premade script in bin/:
