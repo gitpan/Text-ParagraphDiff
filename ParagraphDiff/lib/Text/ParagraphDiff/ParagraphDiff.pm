@@ -13,7 +13,7 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "1.04";
+$VERSION = "1.06";
 
 sub text_diff {
 	return ((html_header(@_)).(create_diff(@_)).(html_footer()));

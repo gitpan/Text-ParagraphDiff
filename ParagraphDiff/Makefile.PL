@@ -4,7 +4,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'    => 'Text::ParagraphDiff',
     'VERSION_FROM' => 'lib/Text/ParagraphDiff/ParagraphDiff.pm',
-    'PREREQ_PM' => {'Algorithm::Diff' => 1.15, 'HTML::Entities' => 1.2},
+    'PREREQ_PM' => '0',
     ($] >= 5.005 ?    # Add these new keywords supported since 5.005
 # retrieve abstract from module
       (ABSTRACT_FROM => 'lib/Text/ParagraphDiff/ParagraphDiff.pm',
