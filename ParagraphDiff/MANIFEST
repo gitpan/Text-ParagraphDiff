@@ -1,0 +1,11 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+test.pl
+bin/tdiff.pl
+lib/Text/DiffParagraph/DiffParagraph.pm
+examples/diff.html
+t/diff.t
+t/old.txt
+t/new.txt
