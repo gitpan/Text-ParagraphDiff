@@ -13,7 +13,7 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.41";
+$VERSION = "2.42";
 
 
 
@@ -403,7 +403,9 @@ sub html_footer {
     if ((@_ == 3) && (exists $_[2]->{footer})) {
         return $_[2]->{footer}
     }
-    return "</div></body></html>"
+
+    my $div = $_[2]->{plain} ? "" : "</div>";
+    return $div."</body></html>"
 }
 
 1;
