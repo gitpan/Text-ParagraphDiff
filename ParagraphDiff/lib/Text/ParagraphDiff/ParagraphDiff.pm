@@ -1,9 +1,9 @@
-package Text::DiffParagraph;
+package Text::ParagraphDiff;
 
 use strict;
 use warnings 'all';
 use Algorithm::Diff qw(diff);
-use HTL::Entities ();
+use HTML::Entities ();
 use POSIX qw(strftime);
 use vars qw(
     $output $start $total_offset %highlight
@@ -13,7 +13,7 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "1.03";
+$VERSION = "1.04";
 
 sub text_diff {
 	return ((html_header(@_)).(create_diff(@_)).(html_footer()));
@@ -53,7 +53,7 @@ sub create_diff {
     my $char_count=0;
     foreach (@old_orig)
     {
-        $_ = HTL::Entities::encode($_);
+        $_ = HTML::Entities::encode($_);
         my @words = (/\S+/g);
         $char_count += scalar(@words);
         push @old, @words;
@@ -79,7 +79,7 @@ sub create_diff {
         my ($leading_white) = /( *)/;
         push @space, $leading_white;
 
-        $_ = HTL::Entities::encode($_);
+        $_ = HTML::Entities::encode($_);
         my @words = (/\S+/g);
 
         push @new, @words;
@@ -351,7 +351,7 @@ sub html_header {
 
         <?xml version="1.0" encoding="iso-8859-1"?>
         <!DOCTYPE html
-            PUBLIC "-//W3C//DTD XHTL 1.0 Transitional//EN"
+            PUBLIC "-//W3C//DTD XHMTL 1.0 Transitional//EN"
             "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
         <html xmlns="http://www.w3.org/1999/xhtml" lang="en-US"><head>
         <title>Difference of $old, $new</title>
@@ -369,7 +369,7 @@ sub html_footer { return "</p></body></html>" }
 1;
 __END__
 
-=head1 NAE
+=head1 NAME
 
 Text::DiffParagraph - Visual Difference for paragraphed text.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
 use strict;
-use Text::DiffParagraph;
+use Text::ParagraphDiff;
 
-print text_diff($ARGV[0],$ARGV[1],{plain=>1});
+print text_diff($ARGV[0],$ARGV[1]);
