@@ -11,11 +11,11 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.11";
+$VERSION = "2.20";
 
 
 sub text_diff {
-    return ((html_header(@_)).(create_diff(@_)).(html_footer()));
+    return ((html_header(@_)).(create_diff(@_)).(html_footer(@_)));
 }
 
 sub create_diff {
@@ -36,6 +36,8 @@ sub create_diff {
         $highlight{plus}  = qq(<span class="plus"> );
         $highlight{end}   = qq(</span>);
     }
+
+    $opt->{plus_order} = 0 unless $opt->{plus_order};
 
     my (@old,@old_count);
     foreach (@$old_orig)
@@ -64,8 +66,8 @@ sub create_diff {
     $opt->{sep} = ['<p>','</p>'] unless exists $opt->{sep};
     my ($plus,$minus) = _get_diffs(\@old, \@new, \@old_count, $opt->{sep});
 
-    _merge_plus  ($total_diff, $plus ) if @$plus;
-    _merge_minus ($total_diff, $minus ) if @$minus;
+    _merge_plus  ($total_diff, $plus) if @$plus;
+    _merge_minus ($total_diff, $minus, $opt->{minus_first}) if @$minus;
     _merge_white ($total_diff, \@leading_space);
 
     $total_diff = _merge_lines ($total_diff, \@count);
@@ -112,7 +114,7 @@ sub _fold {
 sub _get_diffs {
     my ($old,$new,$count,$sep) = @_;
     my @diffs = diff($old, $new);
-    my ($plus,$minus);
+    my ($plus,$minus) = ([],[]);
     foreach my $hunk (@diffs) {
         foreach (@$hunk) {
             push @$plus,  $_ if $_->[0] eq '+';
@@ -153,7 +155,7 @@ sub _merge_plus {
 
 
 sub _merge_minus {
-    my ($total_diff, $min_diff) = @_;
+    my ($total_diff, $min_diff, $minus_first) = @_;
     my ($pos,$offset) = (0,0);
 
     while ( my $cur = shift @$min_diff ) {
@@ -165,7 +167,9 @@ sub _merge_minus {
             ++$offset;
             ++$pos;
         }
-        splice @$total_diff, $pos, 0, ['-',$cur->[2]];
+        my $current = 0;
+        $current = $offset if $minus_first;
+        splice @$total_diff, $pos-$current, 0, ['-',$cur->[2]];
     }
 }
 
@@ -180,7 +184,7 @@ sub _merge_white {
                  && ($total_diff->[$pos][0] ne '-')
               ) { $pos++ }
         $total_diff->[$pos][1] = $cur . $total_diff->[$pos][1]
-        	if $total_diff->[$pos][1];
+            if $total_diff->[$pos][1];
         ++$pos;
     }
 }
@@ -381,8 +385,10 @@ sub html_header {
 }
 
 sub html_footer {
-    return (exists $_[0]->{footer}) ? $_[0]->{footer} :
-        "</div></body></html>"
+    if ((@_ == 3) && (exists $_[2]->{footer})) {
+        return $_[2]->{footer}
+    }
+    return "</div></body></html>"
 }
 
 1;
@@ -403,7 +409,7 @@ rather than by line, reflows the text together, and then outputs result as xhtml
 =head1 SYNOPSIS
 
     use Text::ParagraphDiff;
-    print text_diff($old,$new);            # $old and $new are filenames
+    print text_diff('old.txt','new.txt');  # old.txt and new.txt are filenames
     print text_diff(\@old,\@new);          # Or pass array references
     print text_diff($old,$new,{plain=>1}); # Pass options (see below)
 
@@ -484,6 +490,12 @@ When C<sep> is set, its value will override the default paragraph
 separator.  C<sep> should be a reference to an array of 2 elements;
 the starting paragraph separator, and the ending separator.  The default
 value is C<['<p>',</p>']>.
+
+=item B<minus_first>
+
+By default, when there is a +/- pair, + items appear first by default.
+However, if C<minus_first> is set to a true value, then the order will
+be reversed.
 
 =back
 
