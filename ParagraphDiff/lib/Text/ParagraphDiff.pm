@@ -11,7 +11,7 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.00";
+$VERSION = "2.01";
 
 
 sub text_diff {
@@ -170,8 +170,12 @@ sub _merge_white {
 
     while ( @$whitespace ) {
         my $cur = shift @$whitespace;
-        while ( $total_diff->[$pos][0] ne '-' ) { $pos++ }
-        $total_diff->[$pos][1] = $cur . $total_diff->[$pos][1];
+        while (
+                    ($pos < @$total_diff)
+                 && ($total_diff->[$pos][0] ne '-')
+              ) { $pos++ }
+        $total_diff->[$pos][1] = $cur . $total_diff->[$pos][1]
+        	if $total_diff->[$pos][1];
         $pos++;
     }
 }
