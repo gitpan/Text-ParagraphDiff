@@ -13,16 +13,17 @@ require Exporter;
 @EXPORT = qw(text_diff);
 @EXPORT_OK = qw(create_diff html_header html_footer);
 @ISA = qw(Exporter);
-$VERSION = "2.43";
+$VERSION = "2.50";
 
 
 
-=head2 text_diff( old, new, [options hashref] )
+# XXX: Can't use pod here because it messes up the doc on CPAN. :(
 
-C<text_diff> binds together C<html_header>, C<create_diff>, and C<html_footer>
-to create a single document that is the "paragraph diff" of the 2 records.
+# text_diff( old, new, [options hashref] )
 
-=cut
+# C<text_diff> binds together C<html_header>, C<create_diff>, and
+# C<html_footer> to create a single document that is the "paragraph
+# diff" of the 2 records.
 
 sub text_diff {
     return ((html_header(@_)).(create_diff(@_)).(html_footer(@_)));
@@ -30,11 +31,9 @@ sub text_diff {
 
 
 
-=head2 create_diff ( old, new, [options hashref] )
+# create_diff ( old, new, [options hashref] )
 
-C<create_diff> creates the actual paragraph diff.
-
-=cut
+# C<create_diff> creates the actual paragraph diff.
 
 sub create_diff {
     my($old,$new) = (shift,shift);
@@ -42,6 +41,7 @@ sub create_diff {
 
     my $old_orig = _get_lines($old);
     my $new_orig = _get_lines($new);
+    $new_orig = [''] unless @$new_orig;
 
     my %highlight;
     if ($opt->{plain}) {
@@ -101,13 +101,18 @@ sub create_diff {
 
 # turns potential files into recordsets
 sub _get_lines {
-    my ($file) = @_;
+    my ($file, $opt) = @_;
     my @lines;
     if (!ref $file) {
-        open (FILE, "< $file") or croak "Can't open file $file: $!";
-        @lines = <FILE>;
-        close(FILE);
-        return \@lines;
+        if ($opt->{string}) {
+            return [split /\r\n|\r|\n/,$file];
+        }
+        else {
+            open (FILE, "< $file") or croak "Can't open file $file: $!";
+            @lines = <FILE>;
+            close(FILE);
+            return \@lines;
+        }
     }
     else {
         return $file;
@@ -237,8 +242,10 @@ sub _merge_lines {
             $new->[-1] = [splice @$total_diff,0,$pos+$neg];
         }
     }
-    if (@$total_diff) {
-        push @{$new->[-1]}, @$total_diff if @{$total_diff->[0]};
+
+    if (@{$total_diff->[0]}) {
+        push @$new, [] unless @$new;
+        push @{$new->[-1]}, @$total_diff;
     }
     return $new;
 }
@@ -420,16 +427,25 @@ Text::ParagraphDiff - Visual Difference for paragraphed text.
 
 =head1 ABSTRACT
 
-C<Text::ParagraphDiff> finds the difference between two paragraphed text files by word
-rather than by line, reflows the text together, and then outputs result as xhtml.
+C<Text::ParagraphDiff> finds the difference between two paragraphed text files
+by word rather than by line, reflows the text together, and then outputs result
+as xhtml.
 
 =head1 SYNOPSIS
 
     use Text::ParagraphDiff;
-    print text_diff('old.txt','new.txt');  # old.txt and new.txt are filenames
-    print text_diff(\@old,\@new);          # Or pass array references
-    print text_diff(["old"], ["new"]);     # T-Diff 2 plain strings (a FAQ)
-    print text_diff($old,$new,{plain=>1}); # Pass options (see below)
+
+    # old.txt and new.txt are filenames
+    print text_diff('old.txt', 'new.txt');
+
+    # Or pass array references
+    print text_diff(\@old, \@new);
+
+    # T-Diff 2 plain strings (a FAQ)
+    print text_diff("old", "new", {string=>1});
+
+    # Pass options (see below)
+    print text_diff($old, $new, {plain=>1});
 
     # or use the premade script in bin/:
     # ./tdiff oldfile newfile
@@ -441,10 +457,10 @@ paragraphed text rather than for code.  Instead of "diffing" a document by
 line, C<Text::ParagraphDiff> expands a document to one word per line, uses
 C<Algorithm::Diff> to find the difference, and then reflows the text back
 together, highlighting the "add" and "subtract" sections.  Writers and editors
-might find this useful for sending revisions to each other across the internet;
-a single user might use it to keep track of personal work.  For example output,
-please see diff.html in the distribution, as well as the sources for the
-difference, old.txt and new.txt.
+might find this useful for sending revisions to each other across the internet,
+or a single user might use it to keep track of personal work.  For example
+output, please see diff.html in the distribution, as well as the sources for
+the difference, old.txt and new.txt.
 
 The output is in xhtml, for ease of generation, ease of access, and ease of
 viewing.  C<Text::ParagraphDiff> also takes advantage of two advanced features
@@ -454,23 +470,44 @@ CSS is used to cut down on output size and to make the output very pleasing to
 the eye.  JavaScript is used to implement additional functionality: two buttons
 that can toggle the display of the difference.  CSS and JavaScript can be
 turned off; see the C<plain> option below. (Note: CSS & Javascript tested with
-ozilla 1.0 and IE 5.x)
+Mozilla 1.0, Camino 0.7, and IE 5.x)
+
+=head1 EXPORT
+
+C<text_diff> is exported by default.
+
+Additionally, C<create_diff>, C<html_header>, and C<html_footer> are optionally
+exported by request (e.g. use C<< Text::ParagraphDiff qw(create_diff)) >>.
+C<create_diff> is the actual diff itself; C<html_header> and C<html_footer>
+should be obvious.
 
 =head1 OPTIONS
+
+C<text_diff> is the suggested interface, and it can be configured with a number
+of different options.
 
 Options are stored in a hashref, C<$opt>.  C<$opt> is an optional last argument
 to C<text_diff>, passed like this:
 
-    text_diff($old, $new, { plain => 1,
+    text_diff($old, $new, { string => 1,
+                            plain => 1,
                             escape => 1,
                             functionality => 1,
                             style => 'stylesheet_code_here',
                             header => 'header_markup_here'
                           });
 
+All options are, uh, optional.
+
 Options are:
 
 =over 3
+
+=item B<string>
+
+When set to a true value, C<string> will cause the first 2 arguments to
+be treated as strings, and not files.  These strings will be split on
+the newline character.
 
 =item B<plain>
 
@@ -518,21 +555,14 @@ be reversed.
 
 =back
 
-=head1 EXPORT
-
-C<text_diff> is exported by default.
-Additionally, C<create_diff>, C<html_header>, and C<html_footer> are optionally
-exported by request (e.g. use C<< Text::ParagraphDiff qw(create_diff)) >>.
-C<create_diff> is the actual diff itself; C<html_header> and C<html_footer>
-should be obvious.
-
 =head1 BUGS
 
-In some situations, deletion of entire paragraphs in special places might make
-the surrounding line-breaks become whacky.  If you can isolate the case, please
-send me a bug report, I might be able to fix it.  In the mean time, if this
-happens to you, just fix the output's markup by hand, it shouldn't be too
-complicated.
+In old versions, some situations of deletion of entire paragraphs in special
+places might make the surrounding line-breaks become whacky.  Although this
+bug is theoretically fixed, if you do encounter it, let me know.  If you can
+isolate the case, please send me a bug report, I might be able to fix it.  In
+the mean time, if this does happen to you, just fix the output's markup by
+hand, as it shouldn't be too complicated.
 
 =head1 AUTHOR
 
